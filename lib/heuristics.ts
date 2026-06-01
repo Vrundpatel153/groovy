@@ -11,31 +11,10 @@ export interface FrictionPoint {
 
 // ─── Chat Widget Detection ──────────────────────────────────────────────────
 const CHAT_SIGNATURES = [
-  // Script sources / ids
-  "intercom",
-  "drift",
-  "zendesk",
-  "zopim",
-  "crisp",
-  "livechat",
-  "tidio",
-  "tawk",
-  "hubspot",
-  "freshchat",
-  "olark",
-  "chatwoot",
-  "gorgias",
-  "smartsupp",
-  "liveperson",
-  "comm100",
-  "chatbot",
-  "live-chat",
-  "chat-widget",
-  "messenger-widget",
-  // Common class/id patterns
-  "chat-bubble",
-  "chat-launcher",
-  "chat-container",
+  'intercom','drift','crisp','tawk.to','tawkto','zendesk','freshchat',
+  'livechat','tidio','olark','userlike','chaport','hubspot-messages',
+  'hubspotmeetings','fb-customerchat','messenger','chat-widget',
+  'liveagent','smartsupp','jivochat',
 ];
 
 function detectChatWidget(html: string): boolean {
@@ -45,27 +24,10 @@ function detectChatWidget(html: string): boolean {
 
 // ─── Booking Widget Detection ───────────────────────────────────────────────
 const BOOKING_SIGNATURES = [
-  "calendly",
-  "cal.com",
-  "acuity",
-  "hubspot.com/meetings",
-  "chilipiper",
-  "savvycal",
-  "youcanbook",
-  "oncehub",
-  "schedule a demo",
-  "schedule a call",
-  "book a demo",
-  "book a call",
-  "book a meeting",
-  "schedule demo",
-  "schedule call",
-  "book demo",
-  "book call",
-  "request a demo",
-  "get a demo",
-  "free consultation",
-  "schedule consultation",
+  'calendly','chilipiper','savvycal','cal.com','book a demo','schedule a demo',
+  'schedule a call','book a call','request a demo','get a demo',
+  'talk to sales','talk to us','book time','acuityscheduling','oncehub',
+  'hubspot meetings','demobooked','chili piper',
 ];
 
 function detectBookingWidget(html: string): boolean {
@@ -74,59 +36,56 @@ function detectBookingWidget(html: string): boolean {
 }
 
 // ─── Blog Freshness ────────────────────────────────────────────────────────
+const BLOG_PATH_PATTERNS = ['/blog', '/news', '/updates', '/insights', '/resources', '/articles'];
+
 function checkBlogFreshness(
-  pages: ScrapedPage[]
-): { stale: boolean; newestDate: string | null; pageUrl: string | null } {
-  const blogPage = pages.find((p) =>
-    p.url.toLowerCase().includes("/blog")
-  );
+  pages: ScrapedPage[],
+  homepageUrl: string
+): { stale: boolean; noBlog: boolean; newestDate: Date | null; pageUrl: string | null } {
+  const blogPage = pages.find((p) => {
+    const urlLower = p.url.toLowerCase();
+    return BLOG_PATH_PATTERNS.some((pat) => urlLower.includes(pat));
+  });
 
   if (!blogPage) {
-    return { stale: false, newestDate: null, pageUrl: null };
+    return { stale: false, noBlog: true, newestDate: null, pageUrl: null };
   }
 
   const $ = cheerio.load(blogPage.html);
+  const textContent = $.text();
   const dates: Date[] = [];
 
-  // Look for <time> elements
-  $("time[datetime]").each((_, el) => {
-    const dt = $(el).attr("datetime");
-    if (dt) {
-      const d = new Date(dt);
-      if (!isNaN(d.getTime())) dates.push(d);
-    }
-  });
-
-  // Look for common date patterns in text
-  const datePatterns = [
-    /(\d{4}-\d{2}-\d{2})/g, // 2024-01-15
-    /(\w+ \d{1,2},? \d{4})/g, // January 15, 2024 or Jan 15 2024
-    /(\d{1,2}\/\d{1,2}\/\d{4})/g, // 01/15/2024
-  ];
-
-  const textContent = $.text();
-  for (const pattern of datePatterns) {
-    let match;
-    while ((match = pattern.exec(textContent)) !== null) {
-      const d = new Date(match[1]);
-      if (!isNaN(d.getTime()) && d.getFullYear() > 2015) {
-        dates.push(d);
-      }
-    }
+  // Pattern 1: "January 15, 2024" or "Jan 15 2024"
+  const monthPattern = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+\d{4}/gi;
+  let match;
+  while ((match = monthPattern.exec(textContent)) !== null) {
+    const d = new Date(match[0]);
+    if (!isNaN(d.getTime())) dates.push(d);
   }
 
-  if (dates.length === 0) {
-    return { stale: false, newestDate: null, pageUrl: blogPage.url };
+  // Pattern 2: "2024-01-15" or "2024/01/15"
+  const isoPattern = /\b20\d{2}[-\/]\d{2}[-\/]\d{2}\b/g;
+  while ((match = isoPattern.exec(textContent)) !== null) {
+    const d = new Date(match[0]);
+    if (!isNaN(d.getTime())) dates.push(d);
   }
 
-  const newest = new Date(Math.max(...dates.map((d) => d.getTime())));
+  // Filter valid dates and sort descending
+  const validDates = dates.filter((d) => !isNaN(d.getTime()));
+  if (validDates.length === 0) {
+    return { stale: false, noBlog: false, newestDate: null, pageUrl: blogPage.url };
+  }
+
+  validDates.sort((a, b) => b.getTime() - a.getTime());
+  const mostRecent = validDates[0];
   const daysSince = Math.floor(
-    (Date.now() - newest.getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - mostRecent.getTime()) / (1000 * 60 * 60 * 24)
   );
 
   return {
     stale: daysSince > 90,
-    newestDate: newest.toISOString().split("T")[0],
+    noBlog: false,
+    newestDate: mostRecent,
     pageUrl: blogPage.url,
   };
 }
@@ -149,61 +108,18 @@ function checkPageWeight(page: ScrapedPage): {
 
 // ─── CTA Analysis ───────────────────────────────────────────────────────────
 const CTA_KEYWORDS = [
-  "get started",
-  "try free",
-  "try for free",
-  "start free",
-  "free trial",
-  "sign up",
-  "signup",
-  "register",
-  "buy now",
-  "purchase",
-  "subscribe",
-  "join",
-  "contact us",
-  "contact sales",
-  "request demo",
-  "request a demo",
-  "book a demo",
-  "schedule",
-  "learn more",
-  "see demo",
-  "watch demo",
-  "explore",
-  "download",
-  "get quote",
-  "get a quote",
-  "start now",
-  "begin",
-  "create account",
-  "talk to sales",
-  "talk to us",
-  "let's talk",
-  "get in touch",
+  'demo','trial','get started','start free','free trial','sign up',
+  'try free','try it','book','contact','request','schedule','buy',
+  'purchase','get access','join','start today',
 ];
 
 function countCTAs(html: string): number {
   const $ = cheerio.load(html);
   let ctaCount = 0;
 
-  // Check buttons and links
   $("a, button").each((_, el) => {
-    const text = $(el).text().toLowerCase().trim();
-    const href = $(el).attr("href") || "";
-
+    const text = $(el).text().trim().toLowerCase();
     if (CTA_KEYWORDS.some((kw) => text.includes(kw))) {
-      ctaCount++;
-    }
-    // Also check for common CTA link patterns
-    if (
-      href.includes("/signup") ||
-      href.includes("/register") ||
-      href.includes("/trial") ||
-      href.includes("/demo") ||
-      href.includes("/contact") ||
-      href.includes("/pricing")
-    ) {
       ctaCount++;
     }
   });
@@ -290,24 +206,22 @@ export function runHeuristics(scrapeResult: ScrapeResult): FrictionPoint[] {
   }
 
   // 3. Blog Freshness
-  const blogCheck = checkBlogFreshness(allPages);
-  if (blogCheck.stale) {
+  const blogCheck = checkBlogFreshness(allPages, homepage.url);
+  if (blogCheck.noBlog) {
+    frictions.push({
+      id: "stale_blog",
+      label: "No Blog Found",
+      severity: "medium",
+      detail: "No blog page was scraped - blog may not exist or be linked",
+      citation: homepage.url,
+    });
+  } else if (blogCheck.stale && blogCheck.newestDate) {
     frictions.push({
       id: "stale_blog",
       label: "Stale Blog Content",
       severity: "medium",
-      detail: `Blog appears stale — most recent post dated ${blogCheck.newestDate}. This signals low content investment and may hurt SEO and trust.`,
+      detail: `Most recent blog post: ${blogCheck.newestDate.toDateString()}`,
       citation: blogCheck.pageUrl || "blog page",
-    });
-  } else if (blogCheck.pageUrl && !blogCheck.newestDate) {
-    // Blog page exists but no dates found — might still be stale
-    frictions.push({
-      id: "stale_blog",
-      label: "Blog Freshness Unknown",
-      severity: "low",
-      detail:
-        "Blog page found but no article dates detected. Content freshness could not be verified.",
-      citation: blogCheck.pageUrl,
     });
   }
 
@@ -339,7 +253,7 @@ export function runHeuristics(scrapeResult: ScrapeResult): FrictionPoint[] {
       id: "weak_cta",
       label: "Weak Call-to-Action",
       severity: "high",
-      detail: `Only ${homepageCTAs} CTA(s) detected on homepage. B2B sites typically need multiple clear CTAs (demo, trial, contact) to convert visitors.`,
+      detail: `Only ${homepageCTAs} CTA(s) found on homepage`,
       citation: homepage.url,
     });
   }

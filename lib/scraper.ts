@@ -226,28 +226,10 @@ function pickBestPages(
 }
 
 function extractCompanyName(html: string, url: string): string {
-  const $ = cheerio.load(html);
-
-  // Try <title> tag
-  const title = $("title").first().text().trim();
-  if (title) {
-    // Often "Company Name | Tagline" or "Company Name - Tagline"
-    const parts = title.split(/[|\-–—:]/);
-    const name = parts[0].trim();
-    if (name && name.length < 60) return name;
-  }
-
-  // Try og:site_name
-  const ogSiteName = $('meta[property="og:site_name"]').attr("content");
-  if (ogSiteName) return ogSiteName.trim();
-
-  // Fallback: domain name
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, "");
-    return hostname.charAt(0).toUpperCase() + hostname.slice(1);
-  } catch {
-    return "Unknown Company";
-  }
+  const hostname = new URL(url).hostname.replace(/^www\./, '');
+  const domainPart = hostname.split('.')[0];
+  const companyName = domainPart.charAt(0).toUpperCase() + domainPart.slice(1);
+  return companyName;
 }
 
 export async function scrapeSite(inputUrl: string): Promise<ScrapeResult> {

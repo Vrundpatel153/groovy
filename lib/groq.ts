@@ -50,10 +50,20 @@ OUTPUT FORMAT: Respond with valid JSON only, no markdown fences:
   const userPrompt = `Company: ${companyName}
 Website: ${companyUrl}
 
-Detected Friction Points:
-${frictionSummary}
+Friction points found on their website:
+${frictionPoints.map(f => `- ${f.id} [${f.severity.toUpperCase()}]: ${f.detail}`).join('\n')}
 
-Draft the 5-bullet personalised outreach hook now.`;
+Write exactly 5 outreach hook bullets for a B2B connector.
+
+STRICT RULES:
+1. Use the company name "${companyName}" in at least 2 bullets
+2. Each bullet MUST reference one specific friction finding from the list above
+3. NEVER invent employees, products, statistics, or integrations
+4. Each bullet: emoji + 1-2 sentences + names the specific issue found
+5. DO NOT use generic phrases like "improve user experience" or "SEO benefits"
+
+Return ONLY this JSON, zero markdown, zero explanation:
+{"bullets":["bullet1","bullet2","bullet3","bullet4","bullet5"]}`;
 
   try {
     const completion = await groq.chat.completions.create({
@@ -62,7 +72,7 @@ Draft the 5-bullet personalised outreach hook now.`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.4,
+      temperature: 0.3,
       max_tokens: 1024,
       response_format: { type: "json_object" },
     });
@@ -74,7 +84,13 @@ Draft the 5-bullet personalised outreach hook now.`;
 
     // Parse JSON response
     const parsed = JSON.parse(content);
-    let hookText: string = parsed.hook_text || "No hook generated";
+    // Support both {bullets:[]} and {hook_text:""} formats
+    let hookText: string;
+    if (parsed.bullets && Array.isArray(parsed.bullets)) {
+      hookText = parsed.bullets.join('\n');
+    } else {
+      hookText = parsed.hook_text || "No hook generated";
+    }
     // Normalize bullet characters: strip control chars, ensure • prefix
     hookText = hookText
       .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F]/g, "") // strip control chars
@@ -82,7 +98,7 @@ Draft the 5-bullet personalised outreach hook now.`;
       .trim();
     return {
       hook_text: hookText,
-      citations: parsed.citations || [],
+      citations: parsed.citations || frictionPoints.map((fp) => `${fp.id} - ${fp.label}`),
     };
   } catch (err: any) {
     console.error("Groq LLM error:", err.message);
