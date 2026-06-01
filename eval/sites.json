@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://basecamp.com",
+    "name": "Basecamp",
+    "ground_truth": ["no_chat_widget", "no_booking_widget"],
+    "notes": "Basecamp famously has no live chat and no demo scheduling — they rely on email and self-serve signup."
+  },
+  {
+    "url": "https://www.monicahq.com",
+    "name": "Monica HQ",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "weak_cta"],
+    "notes": "Open-source personal CRM. No chat widget, no booking, minimal CTAs on homepage."
+  },
+  {
+    "url": "https://www.inkscape.org",
+    "name": "Inkscape",
+    "ground_truth": ["no_chat_widget", "no_booking_widget"],
+    "notes": "Open source graphics editor. No commercial chat or booking features, being an open-source project."
+  },
+  {
+    "url": "https://www.gnucash.org",
+    "name": "GnuCash",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "poor_a11y"],
+    "notes": "Open source accounting. No chat, no booking, dated site design with a11y gaps."
+  },
+  {
+    "url": "https://www.apache.org",
+    "name": "Apache Software Foundation",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "weak_cta"],
+    "notes": "Foundation site. No commercial features, minimal CTAs."
+  },
+  {
+    "url": "https://posthog.com",
+    "name": "PostHog",
+    "ground_truth": [],
+    "notes": "Well-optimized B2B site. Has chat, booking, fresh blog, strong CTAs. Should detect few/no friction points."
+  },
+  {
+    "url": "https://www.sentry.io",
+    "name": "Sentry",
+    "ground_truth": [],
+    "notes": "Modern dev tools company. Good chat, CTAs, fresh content. Few friction points expected."
+  },
+  {
+    "url": "https://www.audacityteam.org",
+    "name": "Audacity",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "weak_cta"],
+    "notes": "Open-source audio editor. No commercial features on website."
+  },
+  {
+    "url": "https://www.keycloak.org",
+    "name": "Keycloak",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "weak_cta"],
+    "notes": "Open-source identity solution. Project site without commercial engagement features."
+  },
+  {
+    "url": "https://www.libreoffice.org",
+    "name": "LibreOffice",
+    "ground_truth": ["no_chat_widget", "no_booking_widget"],
+    "notes": "Open-source office suite. No chat or booking. Community-driven site."
+  },
+  {
+    "url": "https://calibre-ebook.com",
+    "name": "Calibre",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "poor_a11y"],
+    "notes": "Open-source e-book manager. Minimal site, no commercial engagement features."
+  },
+  {
+    "url": "https://www.wireguard.com",
+    "name": "WireGuard",
+    "ground_truth": ["no_chat_widget", "no_booking_widget", "weak_cta"],
+    "notes": "VPN protocol site. Minimal design, no chat, no booking, sparse CTAs."
+  }
+]
