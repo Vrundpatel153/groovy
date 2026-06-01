@@ -9,6 +9,9 @@ out/
 .env
 .env.local
 
+# Cache (local database/files)
+cache/
+
 # IDE
 .vscode/
 .idea/
