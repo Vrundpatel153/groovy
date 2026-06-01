@@ -447,15 +447,21 @@ export default function Home() {
                 <span className="icon"><IconMail /></span>
                 Personalised Outreach Hook
               </h2>
-              <button
-                className={`btn-copy ${copied ? "copied" : ""}`}
-                onClick={copyHook}
-                id="btn-copy-hook"
-              >
-                {copied ? "✓ Copied!" : <><IconCopy /> Copy</>}
-              </button>
-              <div className="hook-content">
-                <p className="hook-text">{result.hook_text}</p>
+              <div className="hook-content" style={{ position: "relative" }}>
+                <button
+                  className={`btn-copy-inner ${copied ? "copied" : ""}`}
+                  onClick={copyHook}
+                  id="btn-copy-hook"
+                  style={{
+                    position: "absolute",
+                    top: "12px",
+                    right: "12px",
+                    zIndex: 10,
+                  }}
+                >
+                  {copied ? "✓ Copied!" : <><IconCopy /> Copy</>}
+                </button>
+                <p className="hook-text" style={{ paddingRight: "72px" }}>{result.hook_text}</p>
               </div>
               {result.citations.length > 0 && (
                 <div className="hook-citations">

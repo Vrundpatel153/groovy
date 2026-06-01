@@ -793,8 +793,8 @@ body {
   font-weight: 500;
 }
 
-/* ─── Copy Button ────────────────────────────────────────────────────────── */
-.btn-copy {
+/* ─── Copy Button Overlay ────────────────────────────────────────────────── */
+.btn-copy-inner {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -807,29 +807,59 @@ body {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  float: right;
-  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.btn-copy svg {
+.btn-copy-inner svg {
   width: 12px;
   height: 12px;
 }
 
-.btn-copy:hover {
+.btn-copy-inner:hover {
   background: var(--bg-secondary);
   border-color: var(--text-primary);
+  transform: translateY(-0.5px);
+  box-shadow: 0 2px 8px rgba(9, 9, 11, 0.04);
 }
 
-.btn-copy.copied {
+.btn-copy-inner:active {
+  transform: translateY(0);
+}
+
+.btn-copy-inner.copied {
   color: #15803d;
   background: #f0fdf4;
   border-color: #86efac;
 }
 
-.btn-copy.copied svg {
+.btn-copy-inner.copied svg {
   stroke: #15803d;
+}
+
+/* ─── Theme Toggle Page Switch Transition ────────────────────────────────── */
+body, 
+.bg-mesh,
+.header-card, 
+.section-card, 
+.input-wrapper, 
+.page-item, 
+.summary-stat, 
+.btn-theme-toggle, 
+.btn-analyze, 
+.btn-copy-inner,
+.meta-chip,
+.hook-content,
+.friction-item,
+.severity-badge,
+.citation-tag,
+input {
+  transition: background-color var(--transition-slow), 
+              border-color var(--transition-slow), 
+              color var(--transition-slow), 
+              box-shadow var(--transition-slow),
+              opacity var(--transition-slow),
+              transform var(--transition-fast);
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
