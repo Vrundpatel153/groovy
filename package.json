@@ -9,6 +9,7 @@
     "eval": "npx ts-node --project tsconfig.scripts.json scripts/eval.ts"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.0",
     "axios": "^1.16.1",
     "cheerio": "^1.2.0",
     "groq-sdk": "^1.2.1",

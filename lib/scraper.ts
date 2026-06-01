@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import robotsParser from "robots-parser";
-import { getCachedPage, setCachedPage, CachedPage } from "./cache";
+import { getCached, setCache } from "./cache";
 
 export interface ScrapedPage {
   url: string;
@@ -24,7 +24,7 @@ export interface ScrapeResult {
 const USER_AGENT =
   "Mozilla/5.0 (compatible; FrictionSniffer/1.0; +https://github.com/friction-sniffer)";
 
-const FETCH_TIMEOUT = 15000; // 15s
+const FETCH_TIMEOUT = 8000; // 8s
 
 // Priority paths to look for internal pages
 const PRIORITY_PATHS = [
@@ -49,20 +49,20 @@ const PRIORITY_PATHS = [
 
 async function fetchPage(url: string): Promise<ScrapedPage> {
   // Check cache first
-  const cached = getCachedPage(url);
+  const cached = await getCached(url);
   if (cached) {
     return {
-      url: cached.url,
+      url: url,
       html: cached.html,
-      responseTimeMs: cached.responseTimeMs,
-      contentLength: cached.contentLength,
+      responseTimeMs: cached.meta.loadTimeMs || 0,
+      contentLength: cached.meta.sizeBytes || 0,
       fromCache: true,
     };
   }
 
   const start = Date.now();
   try {
-    const resp = await axios.get(url, {
+    const response = await axios.get(url, {
       timeout: FETCH_TIMEOUT,
       headers: {
         "User-Agent": USER_AGENT,
@@ -75,20 +75,20 @@ async function fetchPage(url: string): Promise<ScrapedPage> {
       validateStatus: (status) => status < 500,
     });
     const elapsed = Date.now() - start;
-    const html = typeof resp.data === "string" ? resp.data : String(resp.data);
-    const headers: Record<string, string> = {};
-    for (const [k, v] of Object.entries(resp.headers)) {
-      if (typeof v === "string") headers[k] = v;
-    }
+    const html = typeof response.data === "string" ? response.data : String(response.data);
+
+    const statusCode = response.status;
+    const sizeBytes = Buffer.byteLength(html, "utf-8");
+    const loadTimeMs = elapsed;
 
     // Cache it
-    setCachedPage(url, html, headers, elapsed);
+    await setCache(url, response.data, { statusCode, sizeBytes, loadTimeMs });
 
     return {
       url,
       html,
       responseTimeMs: elapsed,
-      contentLength: Buffer.byteLength(html, "utf-8"),
+      contentLength: sizeBytes,
       fromCache: false,
     };
   } catch (err: any) {
@@ -263,6 +263,7 @@ export async function scrapeSite(inputUrl: string): Promise<ScrapeResult> {
   // Fetch selected pages
   const pages: ScrapedPage[] = [];
   for (const pageUrl of selectedUrls) {
+    await new Promise(r => setTimeout(r, 500));
     const page = await fetchPage(pageUrl);
     pages.push(page);
   }

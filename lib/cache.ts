@@ -1,78 +1,44 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import { Redis } from '@upstash/redis';
+import crypto from 'crypto';
 
-const CACHE_DIR = path.join(process.cwd(), "cache");
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
-interface CachedPage {
-  url: string;
-  html: string;
-  headers: Record<string, string>;
-  fetchedAt: string;
-  responseTimeMs: number;
-  contentLength: number;
+export function hashUrl(url: string): string {
+  return crypto.createHash('md5').update(url).digest('hex');
 }
 
-function ensureCacheDir() {
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
+export async function getCached(
+  url: string
+): Promise<{ html: string; meta: Record<string, any> } | null> {
+  try {
+    const hash = hashUrl(url);
+    const data = await redis.get<{ html: string; meta: Record<string, any> }>(
+      `fc:${hash}`
+    );
+    return data ?? null;
+  } catch {
+    return null;
   }
 }
 
-function urlToKey(url: string): string {
-  return crypto.createHash("sha256").update(url).digest("hex");
-}
-
-function cacheFilePath(url: string): string {
-  return path.join(CACHE_DIR, `${urlToKey(url)}.json`);
-}
-
-export function getCachedPage(url: string): CachedPage | null {
-  ensureCacheDir();
-  const fp = cacheFilePath(url);
-  if (fs.existsSync(fp)) {
-    try {
-      const raw = fs.readFileSync(fp, "utf-8");
-      return JSON.parse(raw) as CachedPage;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-export function setCachedPage(
+export async function setCache(
   url: string,
   html: string,
-  headers: Record<string, string>,
-  responseTimeMs: number
-): CachedPage {
-  ensureCacheDir();
-  const entry: CachedPage = {
-    url,
-    html,
-    headers,
-    fetchedAt: new Date().toISOString(),
-    responseTimeMs,
-    contentLength: Buffer.byteLength(html, "utf-8"),
-  };
-  fs.writeFileSync(cacheFilePath(url), JSON.stringify(entry), "utf-8");
-  return entry;
-}
-
-export function isCached(url: string): boolean {
-  ensureCacheDir();
-  return fs.existsSync(cacheFilePath(url));
-}
-
-export function clearCache(): void {
-  ensureCacheDir();
-  const files = fs.readdirSync(CACHE_DIR);
-  for (const f of files) {
-    if (f.endsWith(".json")) {
-      fs.unlinkSync(path.join(CACHE_DIR, f));
-    }
+  meta: Record<string, any>
+): Promise<void> {
+  try {
+    const hash = hashUrl(url);
+    // Truncate HTML to 800KB max to stay within Upstash free tier limits
+    const safeHtml = html.length > 800000 ? html.slice(0, 800000) : html;
+    await redis.set(
+      `fc:${hash}`,
+      JSON.stringify({ html: safeHtml, meta }),
+      { ex: 60 * 60 * 24 * 7 } // 7-day TTL
+    );
+  } catch {
+    // Cache write failure is non-fatal — continue without caching
   }
 }
-
-export type { CachedPage };

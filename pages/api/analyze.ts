@@ -17,12 +17,11 @@ export interface AnalyzeResponse {
 
 export const config = {
   api: {
-    responseLimit: false,
     bodyParser: {
-      sizeLimit: "1mb",
+      sizeLimit: '1mb',
     },
+    responseLimit: false,
   },
-  maxDuration: 60, // Allow up to 60s for scraping + LLM
 };
 
 export default async function handler(
